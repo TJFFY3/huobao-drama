@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1780918210965,
+      "tag": "0000_next_lady_deathstrike",
+      "breakpoints": true
+    }
+  ]
+}
