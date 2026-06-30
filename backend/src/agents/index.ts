@@ -79,7 +79,7 @@ const DEFAULT_PROMPTS: Record<string, { name: string; instructions: string }> = 
 - time：时间段，应与 scenes 中已有时间保持一致
 - character_ids：当前镜头涉及的角色 ID 列表，可以为空，也可以包含多个角色；必须从 characters 中选择
 - action：角色动作与表演
-- dialogue：该镜头实际发生的对白或旁白；旁白可写为“旁白：内容”
+- dialogue：该镜头实际发生的对白或旁白；旁白可写为"旁白：内容"
 - description：镜头概述，用于前端阅读和镜头编辑
 - result：该镜头结束时的画面结果或状态变化
 - atmosphere：氛围、光线、色调、环境感受
@@ -151,14 +151,14 @@ const DEFAULT_PROMPTS: Record<string, { name: string; instructions: string }> = 
    - first_last 模式：按用户指定的 rows x cols 生成首尾帧节奏感宫格
    - multi_ref 模式：按用户指定的 rows x cols 生成同一镜头的多角度宫格
 3. 返回 grid_prompt（整体提示词）和 cell_prompts（每格提示词）
-4. 如果用户消息中包含“参考图映射：图片1=...；图片2=...”，要把这段内容原样作为 reference_legend 传给 generate_grid_prompt
+4. 如果用户消息中包含"参考图映射：图片1=...；图片2=..."，要把这段内容原样作为 reference_legend 传给 generate_grid_prompt
 
 提示词规范：
 - 使用英文提示词
 - 必须严格遵守用户指定的 rows 和 cols
 - 必须明确写出 "exactly N visible panels"
 - 必须明确约束 "no merged panels, no missing panels"
-- 宫格位置统一写成“格1/格2/...”，参考图统一写成“图片1/图片2/...”
+- 宫格位置统一写成"格1/格2/..."，参考图统一写成"图片1/图片2/..."
 - 必须包含 "consistent art style" 保持风格统一
 - 必须包含 "cinematic quality"
 - 避免出现文字或水印
@@ -168,16 +168,15 @@ const DEFAULT_PROMPTS: Record<string, { name: string; instructions: string }> = 
 
 export const validAgentTypes = Object.keys(DEFAULT_PROMPTS)
 
-function getAgentConfig(agentType: string) {
-  const rows = db.select().from(schema.agentConfigs)
+async function getAgentConfig(agentType: string) {
+  const rows = await db.select().from(schema.agentConfigs)
     .where(and(eq(schema.agentConfigs.agentType, agentType), isNull(schema.agentConfigs.deletedAt)))
-    .all()
   // Return active one, or first one
   return rows.find(r => r.isActive) || rows[0] || null
 }
 
-function getModel(dbConfig: any) {
-  const textConfig = getTextConfig()
+async function getModel(dbConfig: any) {
+  const textConfig = await getTextConfig()
   const resolvedBaseURL = getTextProviderBaseUrl(textConfig)
   logTaskProgress('AIConfig', 'text-model-endpoint', {
     provider: textConfig.provider,
@@ -192,12 +191,12 @@ function getModel(dbConfig: any) {
   return provider.chat(modelName)
 }
 
-export function createAgent(type: string, episodeId: number, dramaId: number): Agent | null {
+export async function createAgent(type: string, episodeId: number, dramaId: number): Promise<Agent | null> {
   const defaults = DEFAULT_PROMPTS[type]
   if (!defaults) return null
 
-  const dbConfig = getAgentConfig(type)
-  const model = getModel(dbConfig)
+  const dbConfig = await getAgentConfig(type)
+  const model = await getModel(dbConfig)
   const baseInstructions = dbConfig?.systemPrompt?.trim() || defaults.instructions
   const skillInstructions = loadAgentSkills(type)
   const instructions = skillInstructions

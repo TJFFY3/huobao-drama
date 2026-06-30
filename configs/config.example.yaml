@@ -13,10 +13,12 @@ server:
   write_timeout: 600
 
 database:
-  type: "sqlite"
-  path: "./data/huobao_drama.db"
-  max_idle: 10
-  max_open: 100
+  host: "127.0.0.1"
+  port: 3306
+  user: "root"
+  password: "tJF!9920722"
+  database: "huobao_drama"
+  connection_limit: 10
 
 storage:
   type: "local"

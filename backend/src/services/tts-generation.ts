@@ -26,7 +26,7 @@ interface TTSParams {
  * 生成 TTS 音频，返回本地文件路径
  */
 export async function generateTTS(params: TTSParams): Promise<string> {
-  const config = getAudioConfigById(params.configId)
+  const config = await getAudioConfigById(params.configId)
   const adapter = getTTSAdapter(config.provider)
 
   logTaskStart('AudioTask', 'tts-generate', {

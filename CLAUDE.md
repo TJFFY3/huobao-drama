@@ -7,10 +7,10 @@ Huobao Drama — AI-powered drama/video production tool. Full TypeScript stack.
 ## Structure
 
 ```
-backend/   — Hono + Drizzle ORM + Mastra (AI agents) + better-sqlite3
+backend/   — Hono + Drizzle ORM + Mastra (AI agents) + mysql2
 frontend/  — Vue 3 + TypeScript + Vite (pure CSS, no UI framework)
-configs/   — config.yaml
-data/      — SQLite database + static files
+configs/   — config.yaml (database 连接 + AI provider defaults)
+data/      — static files (剧集图片/视频等本地资源)
 skills/    — Agent SKILL.md definitions
 ```
 
@@ -29,7 +29,7 @@ skills/    — Agent SKILL.md definitions
 
 ### Backend
 - **HTTP**: Hono framework with CORS, logger middleware
-- **Database**: Drizzle ORM + better-sqlite3, WAL mode, schema in `src/db/schema.ts`
+- **Database**: Drizzle ORM (mysql-core) + mysql2 async driver, schema in `src/db/schema.ts`
 - **AI Agents**: Mastra framework with AI SDK (OpenAI compatible providers)
 - **Agent Types**: script_rewriter, extractor, storyboard_breaker
 - **SSE Streaming**: Hono streamSSE for agent chat responses
@@ -43,10 +43,11 @@ skills/    — Agent SKILL.md definitions
 - **Styling**: Pure CSS with CSS variables (dark theme)
 
 ## Database
-SQLite at `data/drama_generator.db`. Schema matches existing GORM-created tables.
-Auto-WAL mode. No migrations needed — reads existing DB directly.
+MySQL 8.x via `mysql2` + Drizzle ORM (`mysql-core`).
+Connection in `configs/config.yaml` (gitignored; template at `configs/config.example.yaml`).
+Schema in `backend/src/db/schema.ts`. Migrations under `backend/drizzle/migrations/`.
 
 ## Key Config
-- `configs/config.yaml` — AI provider defaults
+- `configs/config.yaml` — database 连接 + AI provider defaults (gitignored)
 - AI service configs stored in DB (`ai_service_configs` table)
 - Agent configs stored in DB (`agent_configs` table)

@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import { eq, isNull, like, desc } from 'drizzle-orm'
+import { eq, isNull, desc } from 'drizzle-orm'
 import { db, schema } from '../db/index.js'
 import { success, badRequest, notFound, created, now } from '../utils/response.js'
 import { toSnakeCase, toSnakeCaseArray } from '../utils/transform.js'
@@ -13,9 +13,7 @@ app.get('/', async (c) => {
   const status = c.req.query('status')
   const keyword = c.req.query('keyword')
 
-  let query = db.select().from(schema.dramas).where(isNull(schema.dramas.deletedAt))
-
-  const allRows = await query.orderBy(desc(schema.dramas.updatedAt))
+  const allRows = await db.select().from(schema.dramas).where(isNull(schema.dramas.deletedAt)).orderBy(desc(schema.dramas.updatedAt))
   let filtered = allRows
 
   if (status) filtered = filtered.filter(d => d.status === status)
@@ -52,7 +50,7 @@ app.get('/', async (c) => {
 app.post('/', async (c) => {
   const body = await c.req.json()
   const ts = now()
-  const res = db.insert(schema.dramas).values({
+  const insertResult = await db.insert(schema.dramas).values({
     title: body.title,
     description: body.description,
     genre: body.genre,
@@ -62,22 +60,23 @@ app.post('/', async (c) => {
     status: 'draft',
     createdAt: ts,
     updatedAt: ts,
-  }).run()
+  })
 
-  const [result] = db.select().from(schema.dramas)
-    .where(eq(schema.dramas.id, Number(res.lastInsertRowid))).all()
+  const newId = (insertResult as any)[0]?.insertId ?? (insertResult as any).insertId
+  const [result] = await db.select().from(schema.dramas)
+    .where(eq(schema.dramas.id, Number(newId)))
 
   // Create default episodes
   const totalEpisodes = body.total_episodes || 1
   for (let i = 1; i <= totalEpisodes; i++) {
-    db.insert(schema.episodes).values({
+    await db.insert(schema.episodes).values({
       dramaId: result.id,
       episodeNumber: i,
       title: `第${i}集`,
       status: 'draft',
       createdAt: ts,
       updatedAt: ts,
-    }).run()
+    })
   }
 
   return created(c, toSnakeCase(result))
@@ -86,7 +85,7 @@ app.post('/', async (c) => {
 
 // GET /dramas/stats — must be before /:id
 app.get('/stats', async (c) => {
-  const all = db.select().from(schema.dramas).where(isNull(schema.dramas.deletedAt)).all()
+  const all = await db.select().from(schema.dramas).where(isNull(schema.dramas.deletedAt))
   const byStatus = Object.entries(
     all.reduce((acc, d) => {
       acc[d.status || 'draft'] = (acc[d.status || 'draft'] || 0) + 1
@@ -133,7 +132,7 @@ app.put('/:id', async (c) => {
   if (body.status !== undefined) updates.status = body.status
   if (body.tags !== undefined) updates.tags = JSON.stringify(body.tags)
   if (body.metadata !== undefined) updates.metadata = body.metadata
-  db.update(schema.dramas).set(updates).where(eq(schema.dramas.id, id)).run()
+  await db.update(schema.dramas).set(updates).where(eq(schema.dramas.id, id))
   return success(c)
 })
 

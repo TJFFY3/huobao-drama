@@ -33,10 +33,9 @@ export function getTextProviderBaseUrl(config: AIConfig) {
   return config.baseUrl
 }
 
-export function getActiveConfig(serviceType: ServiceType): AIConfig | null {
-  const rows = db.select().from(schema.aiServiceConfigs)
-    .where(eq(schema.aiServiceConfigs.serviceType, serviceType))
-    .all()
+export async function getActiveConfig(serviceType: ServiceType): Promise<AIConfig | null> {
+  const rows = (await db.select().from(schema.aiServiceConfigs)
+    .where(eq(schema.aiServiceConfigs.serviceType, serviceType)))
     .filter(r => r.isActive)
     .sort((a, b) => (b.priority || 0) - (a.priority || 0)) // 高优先级优先
 
@@ -62,29 +61,29 @@ export function getActiveConfig(serviceType: ServiceType): AIConfig | null {
   }
 }
 
-export function getTextConfig(): AIConfig {
-  const config = getActiveConfig('text')
+export async function getTextConfig(): Promise<AIConfig> {
+  const config = await getActiveConfig('text')
   if (!config) throw new Error('No active text AI config')
   return config
 }
 
-export function getAudioConfig(): AIConfig {
-  const config = getActiveConfig('audio')
+export async function getAudioConfig(): Promise<AIConfig> {
+  const config = await getActiveConfig('audio')
   if (!config) throw new Error('No active audio AI config — 请在设置中添加音频服务')
   return config
 }
 
-export function getAudioConfigById(id?: number | null): AIConfig {
+export async function getAudioConfigById(id?: number | null): Promise<AIConfig> {
   if (id) {
-    const config = getConfigById(id)
+    const config = await getConfigById(id)
     if (config) return config
   }
   return getAudioConfig()
 }
 
-export function getConfigById(id: number): AIConfig | null {
-  const [row] = db.select().from(schema.aiServiceConfigs)
-    .where(eq(schema.aiServiceConfigs.id, id)).all()
+export async function getConfigById(id: number): Promise<AIConfig | null> {
+  const [row] = await db.select().from(schema.aiServiceConfigs)
+    .where(eq(schema.aiServiceConfigs.id, id))
   if (!row || !row.isActive) {
     logTaskWarn('AIConfig', 'config-by-id-missing', { configId: id })
     return null
